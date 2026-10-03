@@ -211,14 +211,21 @@ display: none;
 #sort-container {
     display: flex;
     justify-content: center;
-    align-items: baseline;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 15px;
     margin-bottom: 15px;
 }
 
 #sort-container label {
     font-weight: bold;
+}
+
+.sort-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
 }
 
 h1 {

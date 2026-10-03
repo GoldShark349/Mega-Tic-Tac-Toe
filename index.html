@@ -33,60 +33,49 @@
 
 <div id="resume-screen" class="hidden">
   <h2>Saved Games</h2>
+    
 <div id="sort-container">
-
-    <label for="save-filter">
-    Show:
-</label>
-
-<select id="save-filter">
-
-    <option value="all">
-        All Games
-    </option>
-
-    <option value="unfinished">
-        Active Games
-    </option>
-
-    <option value="finished">
-        Finished Games
-    </option>
-
-</select>
-
-    <label for="save-sort">
-        Sort By:
-    </label>
-
-    <select id="save-sort">
-
-        <option value="recent">
-            Recently Played
-        </option>
-
-        <option value="oldest">
-            Oldest Played
-        </option>
-
-        <option value="player1">
-            Player 1 A - Z
-        </option>
-
-        <option value="player2">
-            Player 2 A - Z
-        </option>
-
-        <option value="moves-high">
-            Most Moves
-        </option>
-
-        <option value="moves-low">
-            Least Moves
-        </option>
-
-    </select>
-
+    <div class="sort-group">
+        <label for="save-filter">
+            Show:
+        </label>
+        <select id="save-filter">
+            <option value="all">
+                All Games
+            </option>
+            <option value="unfinished">
+                Active Games
+            </option>
+            <option value="finished">
+                Finished Games
+            </option>
+        </select>
+    </div>
+    <div class="sort-group">
+        <label for="save-sort">
+            Sort By:
+        </label>
+        <select id="save-sort">
+            <option value="recent">
+                Recently Played
+            </option>
+            <option value="oldest">
+                Oldest Played
+            </option>
+            <option value="player1">
+                Player 1 A - Z
+            </option>
+            <option value="player2">
+                Player 2 A - Z
+            </option>
+            <option value="moves-high">
+                Most Moves
+            </option>
+            <option value="moves-low">
+                Least Moves
+            </option>
+        </select>
+    </div>
 </div>
 
 <div id="save-list"></div>
