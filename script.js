@@ -54,7 +54,8 @@ function updateGame(game) {
 const startScreen = document.getElementById('start-screen');
 const btnNewGame = document.getElementById('btn-new-game');
 const btnResumeGame = document.getElementById('btn-resume-game');
-
+const btnImportGame = document.getElementById('btn-import-game');
+const importFile = document.getElementById('import-file');
 const newGamePopup = document.getElementById('new-game-popup');
 const player1Input = document.getElementById('player1-name');
 const player2Input = document.getElementById('player2-name');
@@ -338,6 +339,13 @@ lastPlayed.textContent =
       renderSaveList();
     };
     wrapper.appendChild(btnRename);
+
+const btnExport = document.createElement('button');
+btnExport.textContent = 'Export';
+btnExport.onclick = () => {
+    exportGame(game);
+};
+wrapper.appendChild(btnExport);
 
     const btnDelete = document.createElement('button');
     btnDelete.textContent = 'Delete';
@@ -1163,6 +1171,30 @@ historyForward.onclick = () => {
   renderMap();
 };
 
+// ====== EXPORT ======
+
+function exportGame(game) {
+    const json =
+        JSON.stringify(
+            game,
+            null,
+            2
+        );
+    const blob =
+        new Blob(
+            [json],
+            {
+                type: "application/json"
+            }
+        );
+    const url =URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download =        `MegaUltimateTTT_${game.player1}_vs_${game.player2}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
 // ====== BUTTONS ======
 
 btnNewGame.onclick = () => {
@@ -1245,6 +1277,36 @@ saveSort.onchange = () => {
 
 saveFilter.onchange = () => {
     renderSaveList();
+};
+
+// ====== IMPORT LOGIC ======
+
+btnImportGame.onclick = () => {
+    importFile.click();
+};
+importFile.onchange = e => {
+    const file =
+        e.target.files[0];
+    if (!file) {
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const importedGame = JSON.parse(reader.result);
+            const games =loadSaves();
+            importedGame.id =
+                Date.now();
+            games.push(importedGame);
+            saveAllGames(games);
+            alert("Game imported successfully!");
+            showResumeScreen();
+        }
+        catch {
+            alert("Invalid save file.");
+        }
+    };
+    reader.readAsText(file);
 };
 
 // ====== INITIAL LOAD ======
