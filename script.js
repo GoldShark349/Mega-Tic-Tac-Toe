@@ -1190,7 +1190,7 @@ function exportGame(game) {
     const url =URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download =        `MegaUltimateTTT_${game.player1}_vs_${game.player2}.json`;
+    link.download =        `MegaTTT_${game.player1}_vs_${game.player2}.json`;
     link.click();
     URL.revokeObjectURL(url);
 }
