@@ -31,7 +31,16 @@ button {
   padding: 25px;
   border-radius: 8px;
   display: flex;
-  flex-direction
+  flex-direction: column;
+  gap: 15px;
+}
+
+.popup-content label {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    gap: 6px;
+    font-size: 18px;
 }
 
 .popup-content input {
@@ -42,14 +51,14 @@ button {
 }
 
 #mega-board {
-  display: grid;
-  grid-template-columns: repeat(27, 1fr);
-  grid-template-rows: repeat(27, 1fr);
-  width: min(85vw, 70vh);
-  height: min(85vw, 70vh);
-  margin: 20px auto;
-  border: 4px solid white;
-  box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(27, 1fr);
+    grid-template-rows: repeat(27, 1fr);
+    width: min(92vw, 75dvh);
+    height: min(92vw, 75dvh);
+    margin: 20px auto;
+    border: 4px solid white;
+    box-sizing: border-box;
 }
 
 .ultimate-board {
@@ -226,4 +235,9 @@ h2 {
 #btn-back-to-map {
     min-height: 50px;
     min-width: 120px;
+}
+
+#btn-create-game,
+#btn-cancel-new {
+    width: 100%;
 }
