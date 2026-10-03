@@ -735,12 +735,12 @@ for (let row = 0; row < 27; row++) {
       cell.style.borderLeft = '2px solid white';
     }
 
-    if (row % 9 === 0) {
-      cell.style.borderTop = '4px solid white';
-    }
+    if (row % 9 === 0 && row !== 0) {
+     cell.style.borderTop = '4px solid white';
+    }  
 
-    if (col % 9 === 0) {
-      cell.style.borderLeft = '4px solid white';
+    if (col % 9 === 0 && col !== 0) {
+     cell.style.borderLeft = '4px solid white';
     }
 
 const boardMega =
