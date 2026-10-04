@@ -136,13 +136,24 @@ display: none;
 }
 
 #start-buttons {
-  margin-top: 30px;
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
 }
 
 #btn-new-game,
-#btn-resume-game {
-  font-size: 24px;
-  padding: 15px 40px;
+#btn-resume-game,
+#btn-how-to-play{
+    font-size: 24px;
+    padding: 15px 40px;
+    width: 280px;
+}
+
+#btn-import-game {
+    width: 220px;
+    font-size: 20px;
 }
 
 #start-screen.hidden,
@@ -184,7 +195,7 @@ display: none;
     font-size: 32px;
     font-weight: bold;
     margin-bottom: 10px;
-    animation: flashFreeMove 0.5s infinite;
+    color: #00ff66;
 }
 
 @keyframes flashFreeMove {
@@ -247,4 +258,29 @@ h2 {
 #btn-create-game,
 #btn-cancel-new {
     width: 100%;
+}
+
+#tutorial-screen {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: left;
+}
+
+#tutorial-content {
+    background: #333;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+#tutorial-content h2 {
+    margin-top: 25px;
+}
+
+#tutorial-content p {
+    line-height: 1.6;
+}
+
+#btn-tutorial-back {
+    margin-top: 20px;
 }

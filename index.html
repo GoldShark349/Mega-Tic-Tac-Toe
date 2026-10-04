@@ -14,8 +14,8 @@
   <div id="start-buttons">
     <button id="btn-new-game">Start New Game</button>
     <button id="btn-resume-game">Resume Game</button>
-    <button id="btn-import-game">Import Game
-    </button>
+    <button id="btn-how-to-play">How To Play</button>
+    <button id="btn-import-game">Import Game</button>
   </div>
 </div>
 
@@ -25,8 +25,70 @@
     <label>Player 1 Name:
       <input type="text" id="player1-name" placeholder="Player 1">
     </label>
+    <label>
+        Player 1 Color:
+
+        <select id="player1-color">
+
+            <option value="#ff0000">
+                Red
+            </option>
+
+            <option value="#00aa00">
+                Green
+            </option>
+
+            <option value="#0080ff">
+                Blue
+            </option>
+
+            <option value="#ff8800">
+                Orange
+            </option>
+
+            <option value="#aa00ff">
+                Purple
+            </option>
+
+            <option value="#ff00aa">
+                Pink
+            </option>
+
+        </select>
+    </label>
     <label>Player 2 Name:
       <input type="text" id="player2-name" placeholder="Player 2">
+    </label>
+    <label>
+        Player 2 Color:
+
+        <select id="player2-color">
+
+            <option value="#0080ff">
+                Blue
+            </option>
+
+            <option value="#ff0000">
+                Red
+            </option>
+
+            <option value="#00aa00">
+                Green
+            </option>
+
+            <option value="#ff8800">
+                Orange
+            </option>
+
+            <option value="#aa00ff">
+                Purple
+            </option>
+
+            <option value="#ff00aa">
+                Pink
+            </option>
+
+        </select>
     </label>
     <button id="btn-create-game">Create</button>
     <button id="btn-cancel-new">Cancel</button>
@@ -105,6 +167,140 @@
   <button id="btn-exit-to-start">Exit to Start</button>
 </div>
 
+<div id="tutorial-screen" class="hidden">
+
+    <h1>How To Play</h1>
+
+    <div id="tutorial-content">
+
+        <h2>Objective</h2>
+
+        <p>
+            Mega Tic Tac Toe is a three-layer version of
+            Ultimate Tic Tac Toe.
+
+            The goal is to win the Mega Board.
+
+            First win Small Boards. Then use those to win
+            Ultimate Boards. Finally, win Ultimate Boards
+            to capture the Mega Board and win the game.
+        </p>
+
+        <h2>Starting The Game</h2>
+
+        <p>
+            Every game begins in the center board of the
+            center Ultimate Board.
+
+            Player 1 uses Red.
+
+            Player 2 uses Blue.
+        </p>
+
+        <h2>Taking A Turn</h2>
+
+        <p>
+            Press Continue to enter the currently active
+            Small Board.
+
+            Select any empty cell to place your mark.
+        </p>
+
+        <h2>Small Boards</h2>
+
+        <p>
+            Each Small Board works exactly like normal
+            Tic Tac Toe.
+
+            Get three in a row vertically, horizontally,
+            or diagonally to win the Small Board.
+
+            Won Small Boards become permanently colored
+            Red or Blue.
+        </p>
+
+        <h2>Ultimate Boards</h2>
+
+        <p>
+            Each Ultimate Board contains nine Small Boards.
+
+            Win three Small Boards in a row inside an
+            Ultimate Board to capture that Ultimate Board.
+        </p>
+
+        <h2>Mega Board</h2>
+
+        <p>
+            The Mega Board contains nine Ultimate Boards.
+
+            Win three Ultimate Boards in a row to win the
+            entire game.
+        </p>
+
+        <h2>Board Routing</h2>
+
+        <p>
+            The cell you choose determines where the next
+            player must play.
+
+            Example:
+
+            If you play in the upper-right cell, the next
+            player must play in the upper-right board.
+        </p>
+
+        <h2>Free Moves</h2>
+
+        <p>
+            If a move would send the next player to a
+            completed board, a FREE MOVE is awarded.
+
+            When FREE MOVE appears at the top of the
+            screen, the player may choose any unfinished
+            board to play in.
+        </p>
+
+        <h2>History Controls</h2>
+
+        <p>
+            The Back button steps backward through the game.
+
+            The Forward button steps forward.
+
+            Continue immediately returns to the current
+            game position.
+        </p>
+
+        <h2>Import And Export</h2>
+
+        <p>
+            Individual games can be exported as save files.
+
+            Those save files may later be imported onto
+            another device.
+        </p>
+
+        <h2>Tips</h2>
+
+        <p>
+            Don't focus only on the Small Board you are
+            currently playing.
+
+            Think several moves ahead and consider where
+            your move will force your opponent to play next.
+
+            Controlling future destinations is often more
+            important than winning a Small Board quickly.
+        </p>
+
+    </div>
+
+    <button id="btn-tutorial-back">
+        Back
+    </button>
+
+</div>
+    
 <div id="zoom-screen" class="hidden">
   <h2 id="zoom-title" class="hidden"></h2>
   <div id="zoom-board"></div>
