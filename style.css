@@ -43,7 +43,8 @@ button {
     font-size: 18px;
 }
 
-.popup-content input {
+.popup-content input,
+.popup-content select {
     width: 100%;
     font-size: 20px;
     padding: 12px;

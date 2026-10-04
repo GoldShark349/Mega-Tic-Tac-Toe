@@ -141,7 +141,6 @@ function showMapScreen() {
         currentGame.player2Color = "#0080ff";
     }
     startScreen.classList.add('hidden');
-    startScreen.classList.add('hidden');
     resumeScreen.classList.add('hidden');
     zoomScreen.classList.add('hidden');
     mapScreen.classList.remove('hidden');
@@ -300,9 +299,16 @@ default:
     return;
   }
 
-  games.forEach(game => {
+    games.forEach(game => {
+        if (!game.player1Color) {
+            game.player1Color = "#ff0000";
+        }
+
+        if (!game.player2Color) {
+            game.player2Color = "#0080ff";
+        }
     const wrapper = document.createElement('div');
-      const thumbnail =   document.createElement('canvas');
+    const thumbnail =   document.createElement('canvas');
 
 thumbnail.width = 54;
 thumbnail.height = 54;
