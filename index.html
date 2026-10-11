@@ -4,19 +4,48 @@
 <meta charset="UTF-8">
 <meta name="viewport"
     content="width=device-width, initial-scale=1.0">
-<title>Mega Tic Tac Toe</title>
+<title>Tic Tac Toe</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="start-screen">
-  <h1>Mega Tic Tac Toe</h1>
-  <div id="start-buttons">
-    <button id="btn-new-game">Start New Game</button>
-    <button id="btn-resume-game">Resume Game</button>
-    <button id="btn-how-to-play">How To Play</button>
-    <button id="btn-import-game">Import Game</button>
-  </div>
+    <h1>Game Selection</h1>
+    <div id="start-buttons">
+        <button id="btn-classic-game">
+            Classic Tic Tac Toe
+        </button>
+        <button id="btn-ultimate-game">
+            Ultimate Tic Tac Toe
+        </button>
+        <button id="btn-mega-game">
+            Mega Tic Tac Toe
+        </button>
+        <button id="btn-super-game">
+            Super Tic Tac Toe
+        </button>
+    </div>
+</div>
+
+<div id="mega-home-screen" class="hidden">
+    <h1 id="game-home-title">Mega Tic Tac Toe</h1>
+    <div id="start-buttons">
+        <button id="btn-new-game">
+            Start New Game
+        </button>
+        <button id="btn-resume-game">
+            Resume Game
+        </button>
+        <button id="btn-how-to-play">
+            How To Play
+        </button>
+        <button id="btn-import-game">
+            Import Game
+        </button>
+    </div>
+    <button id="btn-exit-game">
+        Exit
+    </button>
 </div>
 
 <div id="new-game-popup" class="popup hidden">

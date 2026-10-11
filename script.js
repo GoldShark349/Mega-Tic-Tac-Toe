@@ -1,25 +1,30 @@
 // ====== DATA MODEL ======
 
-function createEmptyGame(player1, player2, player1Color, player2Color) {
+function createEmptyGame(
+    player1, 
+    player2, 
+    player1Color, 
+    player2Color
+) {
   const megaBoard = [];
   for (let m = 0; m < 9; m++) {
     const ultimate = [];
     for (let u = 0; u < 9; u++) {
       const small = new Array(9).fill(null);
-      ultimate.push({ cells: small, winner: null });
+      ultimate.push({ cells: small, winner: null});
     }
     megaBoard.push({ smallBoards: ultimate, winner: null });
   }
 
   return {
     id: Date.now(),
+    gameType: currentGameType,
     player1,
     player2,
     player1Color,
     player2Color,
     megaBoard,
-    currentMegaIndex: 4,
-    currentSmallIndex: 4,
+    currentPath: [4,4],
     currentPlayer: 'X',
     freeMove: false,
     history: [],
@@ -32,10 +37,27 @@ function createEmptyGame(player1, player2, player1Color, player2Color) {
 const STORAGE_KEY = 'mega_tictactoe_saves';
 
 function loadSaves() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return [];
-  try { return JSON.parse(raw); }
-  catch { return []; }
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    try {
+        return JSON
+            .parse(raw)
+            .map(normalizeSave);
+    }
+    catch { return []; }
+}
+
+function normalizeSave(game) {
+    if (!game.gameType) {
+        game.gameType = "mega";
+    }
+    if (!game.currentPath) {
+        game.currentPath =
+            game.gameType === "ultimate"
+            ? [4]
+            : [4,4];
+    }
+    return game;
 }
 
 function saveAllGames(games) {
@@ -54,6 +76,12 @@ function updateGame(game) {
 // ====== SCREEN ELEMENTS ======
 
 const startScreen = document.getElementById('start-screen');
+const megaHomeScreen = document.getElementById('mega-home-screen');
+const btnClassicGame = document.getElementById('btn-classic-game');
+const btnUltimateGame = document.getElementById('btn-ultimate-game');
+const btnMegaGame = document.getElementById('btn-mega-game');
+const btnSuperGame = document.getElementById('btn-super-game');
+const btnBackToSelection = document.getElementById('btn-exit-game');
 const btnNewGame = document.getElementById('btn-new-game');
 const btnResumeGame = document.getElementById('btn-resume-game');
 const btnImportGame = document.getElementById('btn-import-game');
@@ -85,6 +113,7 @@ const saveFilter = document.getElementById('save-filter');
 const tutorialScreen = document.getElementById('tutorial-screen');
 const btnHowToPlay = document.getElementById('btn-how-to-play');
 const btnTutorialBack = document.getElementById('btn-tutorial-back');
+const gameHomeTitle = document.getElementById("game-home-title");
 
 // ====== GLOBAL STATE ======
 
@@ -94,7 +123,46 @@ let viewingHistory = false;
 
 let historyMegaIndex = null;
 let historySmallIndex = null;
-let selectedFreeMoveBoard = null;
+let freeMoveSelection = null;
+let currentGameType = "mega";
+
+const GAME_CONFIGS = {
+    classic: {
+        title: "Tic Tac Toe"
+    },
+    ultimate: {
+        title: "Ultimate Tic Tac Toe"
+    },
+    mega: {
+        title: "Mega Tic Tac Toe"
+    },
+    super: {
+        title: "Super Tic Tac Toe"
+    }
+};
+
+function getGameHandler() {
+    return GAME_HANDLERS[
+        currentGameType
+    ];
+}
+
+const GAME_HANDLERS = {
+    mega: {
+        renderMap,
+        renderZoom: renderZoomBoard,
+        handleMove: handleCellClick,
+        buildHistory:
+            buildBoardFromHistory
+    },
+    ultimate: {
+        renderMap: renderUltimateMap,
+        renderZoom: renderUltimateZoom,
+        handleMove: handleUltimateMove,
+        buildHistory:
+            buildUltimateBoardFromHistory
+    }
+};
 
 // ====== COLOR SELECTOR ======
 
@@ -104,7 +172,46 @@ function getPlayerColor(player) {
         : currentGame.player2Color;
 }
 
-// ====== SCREEN HELPERS ======
+function getCurrentPlayerColor() {
+    return getPlayerColor(
+        currentGame.currentPlayer
+    );
+}
+
+function applyWinnerFill(
+    element,
+    winner,
+    player1Color,
+    player2Color
+) {
+    if (winner === 'X') {
+        element.style.backgroundColor =
+            player1Color;
+    }
+    else if (winner === 'O') {
+        element.style.backgroundColor =
+            player2Color;
+    }
+}
+
+function applyHighlight(
+    element,
+    active
+) {
+    element.classList.remove(
+        "highlighted-board"
+    );
+    if (!active) {
+        return;
+    }
+    element.classList.add(
+        "highlighted-board"
+    );
+    element.style.color =
+        getCurrentPlayerColor();
+}
+
+// ====== UNIVERSAL HELPER FUNCTIONS ======
 
 function showStartScreen() {
     tutorialScreen.classList.add('hidden');
@@ -113,10 +220,27 @@ function showStartScreen() {
     mapScreen.classList.add('hidden');
     zoomScreen.classList.add('hidden');
     newGamePopup.classList.add('hidden');
-
+    megaHomeScreen.classList.add('hidden');
     let games = loadSaves();
-    
     btnResumeGame.disabled = (games.length === 0);
+}
+
+function showGameHomeScreen() {
+    startScreen.classList.add('hidden');
+    megaHomeScreen.classList.remove('hidden');
+    resumeScreen.classList.add('hidden');
+    mapScreen.classList.add('hidden');
+    zoomScreen.classList.add('hidden');
+    tutorialScreen.classList.add('hidden');
+    gameHomeTitle.textContent =
+        GAME_CONFIGS[currentGameType].title;
+    let games = loadSaves();
+    btnResumeGame.disabled =
+        games.filter(
+            g =>
+            g.gameType ===
+            currentGameType
+        ).length === 0;
 }
 
 function showNewGamePopup() {
@@ -129,8 +253,14 @@ function hideNewGamePopup() {
 
 function showResumeScreen() {
     startScreen.classList.add('hidden');
+    megaHomeScreen.classList.add('hidden');
     resumeScreen.classList.remove('hidden');
     renderSaveList();
+}
+
+function renderCurrentGame() {
+    getGameHandler()
+        .renderMap();
 }
 
 function showMapScreen() {
@@ -144,17 +274,20 @@ function showMapScreen() {
     resumeScreen.classList.add('hidden');
     zoomScreen.classList.add('hidden');
     mapScreen.classList.remove('hidden');
-    renderMap();
+    megaHomeScreen.classList.add('hidden');
+    renderCurrentGame();
 }
 
 function showZoomScreen() {
     mapScreen.classList.add('hidden');
     zoomScreen.classList.remove('hidden');
-    renderZoomBoard();
+    megaHomeScreen.classList.add('hidden');
+    renderCurrentZoom();
 }
 
 function showTutorialScreen() {
     startScreen.classList.add('hidden');
+    megaHomeScreen.classList.add('hidden');
     resumeScreen.classList.add('hidden');
     mapScreen.classList.add('hidden');
     zoomScreen.classList.add('hidden');
@@ -162,15 +295,369 @@ function showTutorialScreen() {
 }
 
 function updateAvailableColors() {
-    const player1Color =
-        player1ColorSelect.value;
+    const player1Color = player1ColorSelect.value;
+    const player2Color = player2ColorSelect.value;
+    Array.from(player1ColorSelect.options).forEach(option => {
+        option.disabled = option.value === player2Color;
+    });
     Array.from(player2ColorSelect.options).forEach(option => {
-        option.disabled =
-            option.value === player1Color;
+        option.disabled = option.value === player1Color;
     });
 }
 
+function switchPlayer() {
+    currentGame.currentPlayer =
+        currentGame.currentPlayer === 'X'
+        ? 'O'
+        : 'X';
+}
+
+function showWinner(
+    winner
+) {
+    alert(
+        winner === 'X'
+        ? `${currentGame.player1} wins!`
+        : `${currentGame.player2} wins!`
+    );
+}
+
+function resetHistoryView() {
+    viewingHistory = false;
+    historyMegaIndex = null;
+    historySmallIndex = null;
+}
+
+function updateHistoryButtons() {
+    historyBack.disabled =
+        historyIndex <= 0;
+    historyForward.disabled =
+        historyIndex >=
+        currentGame.history.length;
+}
+
+function leaveHistoryMode() {
+    historyIndex =
+        currentGame.history.length;
+    resetHistoryView();
+    updateHistoryButtons();
+}
+
+function clearSelections() {
+    freeMoveSelection = null;
+}
+
+function startFreeMoveSelection(
+    ...levels
+) {
+    freeMoveSelection = {};
+    levels.forEach(
+        (level, index) => {
+            freeMoveSelection[
+                `level${index + 1}`
+            ] = level;
+        }
+    );
+}
+
+function setCurrentBoard(
+    ...levels
+) {
+    currentGame.currentPath =
+        levels;
+}
+
+function isBoardPlayable(
+    board
+) {
+    return (
+        board &&
+        !board.winner
+    );
+}
+
+function isPlayableDestination(
+    board
+) {
+    return isBoardPlayable(
+        board
+    );
+}
+
+function getCurrentPathLevel(
+    level
+) {
+    return currentGame.currentPath[
+        level
+    ];
+}
+
+function isHighlightedBoard(
+    boardIndex
+) {
+    const active =
+        getHighlightedLevels();
+    return (
+        active.level1 ===
+        boardIndex
+    );
+}
+
+function isHighlightedSmallBoard(
+    ultimateIndex,
+    smallIndex
+) {
+    if (viewingHistory) {
+        return false;
+    }
+    const active =
+        getHighlightedLevels();
+    return (
+        active.level1 ===
+            ultimateIndex
+        &&
+        active.level2 ===
+            smallIndex
+    );
+}
+
+function createMiniBoardElement(
+    board,
+    player1Color,
+    player2Color
+) {
+    const container =
+        document.createElement('div');
+    container.className =
+        'small-board-thumb';
+    if (!board.winner) {
+        board.cells.forEach(
+            value => {
+                const cell =
+                    document.createElement(
+                        'div'
+                    );
+                cell.className =
+                    'mini-cell';
+                if (value === 'X') {
+                    cell.style.background =
+                        player1Color;
+                }
+                else if (value === 'O') {
+                    cell.style.background =
+                        player2Color;
+                }
+                container.appendChild(
+                    cell
+                );
+            }
+        );
+    }
+    applyWinnerFill(
+        container,
+        board.winner,
+        player1Color,
+        player2Color
+    );
+    return container;
+}
+
+function createUltimateCellElement(
+    value
+) {
+    const cell =
+        document.createElement("div");
+    cell.className =
+        "mini-cell";
+    if (value === "X") {
+        cell.style.backgroundColor =
+            currentGame.player1Color;
+    }
+    else if (value === "O") {
+        cell.style.backgroundColor =
+            currentGame.player2Color;
+    }
+    return cell;
+}
+
+function createUltimateBoardElement(
+    ultimateBoard,
+    player1Color,
+    player2Color,
+    ultimateIndex
+) {
+    const container =
+        document.createElement('div');
+    container.className =
+        'ultimate-board';
+    if (!ultimateBoard.winner) {
+        ultimateBoard.smallBoards.forEach(
+        (board, smallIndex) => {
+            const mini =
+                createMiniBoardElement(
+                    board,
+                    player1Color,
+                    player2Color
+                );
+        if (
+            isHighlightedSmallBoard(
+                ultimateIndex,
+                smallIndex
+            )
+        ) {
+            applyHighlight(
+                mini,
+                isHighlightedSmallBoard(
+                    ultimateIndex,
+                    smallIndex
+                )
+            );
+        }
+        mini.onclick = (e) => {
+            e.stopPropagation();
+            if (
+                !currentGame.freeMove
+            ) {
+                return;
+            }
+            const targetBoard =
+                ultimateBoard.smallBoards[
+                    smallIndex
+                ];
+            if (
+                !isPlayableDestination(
+                    targetBoard
+                )
+            ) {
+                return;
+            }
+            startFreeMoveSelection(
+                ultimateIndex,
+                smallIndex
+            );
+            setCurrentBoard(
+                ultimateIndex,
+                smallIndex
+            );
+            renderMap();
+        };
+        container.appendChild(
+            mini
+        );
+    });
+}
+    applyWinnerFill(
+        container,
+        ultimateBoard.winner,
+        player1Color,
+        player2Color
+    );
+    return container;
+}
+
+function getCurrentBoardSet() {
+    if (
+        currentGameType ===
+        "ultimate"
+    ) {
+        return viewingHistory
+            ? buildGameStateFromHistory(
+                historyIndex
+              )
+            : currentGame.ultimateBoard;
+    }
+    return viewingHistory
+        ? buildGameStateFromHistory(
+            historyIndex
+          )
+        : currentGame.megaBoard;
+}
+
+function buildGameStateFromHistory(
+    moveCount
+) {
+    return getGameHandler()
+        .buildHistory(
+            moveCount
+        );
+}
+
+function shouldDisableContinue() {
+    return (
+        viewingHistory ||
+        !hasValidSelection()
+    );
+}
+
+function updateFreeMoveBanner() {
+    freeMoveBanner.classList.toggle(
+        'hidden',
+        !(
+            currentGame.freeMove &&
+            !viewingHistory
+        )
+    );
+}
+
+function updateContinueButton() {
+    turnArrowBtn.disabled =
+        shouldDisableContinue();
+    turnArrowBtn.style.opacity =
+        shouldDisableContinue()
+            ? "0.3"
+            : "1";
+    turnArrowBtn.style.background =
+        getCurrentPlayerColor();
+    turnArrowBtn.style.color =
+        "white";
+}
+
+function updateGameTitle(
+    winner = null
+) {
+    if (winner === 'X') {
+        gameTitle.textContent =
+            `${currentGame.player1} Won!`;
+        return;
+    }
+    if (winner === 'O') {
+        gameTitle.textContent =
+            `${currentGame.player2} Won!`;
+        return;
+    }
+    gameTitle.textContent =
+        `${currentGame.player1} vs ${currentGame.player2}`;
+}
+
+function hasValidSelection() {
+    if (!currentGame.freeMove) {
+        return true;
+    }
+    if (!freeMoveSelection) {
+        return false;
+    }
+    return true;
+}
+
+function getHighlightedLevels() {
+    if (
+        currentGame.freeMove &&
+        freeMoveSelection
+    ) {
+        return freeMoveSelection;
+    }
+    return {
+        level1:
+            currentGame.currentPath[0],
+        level2:
+            currentGame.currentPath[1]
+    };
+}
+
 player1ColorSelect.onchange =
+    updateAvailableColors;
+
+player2ColorSelect.onchange =
     updateAvailableColors;
 
 // ====== TIMESTAMP ======
@@ -208,22 +695,39 @@ function formatTimeAgo(dateString) {
 // ====== SAVE LIST ======
 
 function renderSaveList() {
-  let games = loadSaves();
+    let games = loadSaves();
 
-    if (saveFilter.value === "finished") {
-    games = games.filter(
-        game =>
-        checkMegaWinner(game.megaBoard)
-    );
+    games = games.filter(game => {
+        const type =
+            game.gameType || "mega";
+        return type === currentGameType;
+    });
+
+if (saveFilter.value === "finished") {
+    games = games.filter(game => {
+        if (game.gameType === "ultimate") {
+            return checkUltimateGameWinner(
+                game.ultimateBoard
+            );
+        }
+        return checkMegaWinner(
+            game.megaBoard
+        );
+    });
 }
-
+    
 if (saveFilter.value === "unfinished") {
-    games = games.filter(
-        game =>
-        !checkMegaWinner(game.megaBoard)
-    );
+    games = games.filter(game => {
+        if (game.gameType === "ultimate") {
+            return !checkUltimateGameWinner(
+                game.ultimateBoard
+            );
+        }
+        return !checkMegaWinner(
+            game.megaBoard
+        );
+    });
 }
-
 switch (saveSort.value) {
 
 case "oldest":
@@ -323,12 +827,25 @@ ctx.fillRect(0,0,54,54);
 
 const title = document.createElement('div');
 
-rebuildUltimateWinnersForGame(game);
+let gameWinner = null;
 
-const gameWinner =
-    checkMegaWinner(
-        game.megaBoard
+if (game.gameType === "mega") {
+    rebuildUltimateWinnersForGame(
+        game
     );
+    gameWinner =
+        checkMegaWinner(
+            game.megaBoard
+        );
+}
+else if (
+    game.gameType === "ultimate"
+) {
+    gameWinner =
+        checkUltimateGameWinner(
+            game.ultimateBoard
+        );
+}
 
 if (gameWinner === 'X') {
 
@@ -362,14 +879,24 @@ lastPlayed.textContent =
     const btnPlay = document.createElement('button');
     btnPlay.textContent = 'Play';
     btnPlay.onclick = () => {
-      currentGame = game;
-      historyIndex =
-          currentGame.history.length;
-      selectedFreeMoveBoard = null;
-      viewingHistory = false;
-      historyMegaIndex = null;
-      historySmallIndex = null;
-      showMapScreen();
+        currentGameType = game.gameType;
+        currentGame = game;
+        if (!currentGame.currentPath) {
+            currentGame.currentPath =
+                currentGame.gameType ===
+                "ultimate"
+                ? [
+                    currentGame.currentBoard ?? 4
+                ]
+                : [
+                    currentGame.currentMegaIndex ?? 4,
+                    currentGame.currentSmallIndex ?? 4
+                ];
+        }
+        historyIndex = currentGame.history.length;
+        clearSelections();
+        resetHistoryView();
+        showMapScreen();
 };
     wrapper.appendChild(btnPlay);
 
@@ -402,12 +929,14 @@ wrapper.appendChild(btnExport);
     };
     wrapper.appendChild(btnDelete);
 
-rebuildUltimateWinnersForGame(
-    game
-);
+if (game.gameType === "mega") {
 
-game.megaBoard.forEach(
-    (ultimateBoard, megaIndex) => {
+    rebuildUltimateWinnersForGame(
+        game
+    );
+
+    game.megaBoard.forEach(
+        (ultimateBoard, megaIndex) => {
 
         if (
             !ultimateBoard.winner
@@ -512,6 +1041,72 @@ game.history.forEach(move => {
     }
 });
 
+}
+
+if (
+    game.gameType === "ultimate"
+) {
+
+    game.ultimateBoard.forEach(
+        (board, boardIndex) => {
+
+            if (board.winner) {
+
+                const row =
+                    Math.floor(
+                        boardIndex / 3
+                    );
+
+                const col =
+                    boardIndex % 3;
+
+                ctx.fillStyle =
+                    board.winner === "X"
+                        ? game.player1Color
+                        : game.player2Color;
+
+                ctx.fillRect(
+                    col * 18,
+                    row * 18,
+                    18,
+                    18
+                );
+            }
+
+            board.cells.forEach(
+                (cell, cellIndex) => {
+
+                    if (!cell) return;
+
+                    const row =
+                        Math.floor(
+                            boardIndex / 3
+                        ) * 6 +
+                        Math.floor(
+                            cellIndex / 3
+                        ) * 2;
+
+                    const col =
+                        (boardIndex % 3) * 6 +
+                        (cellIndex % 3) * 2;
+
+                    ctx.fillStyle =
+                        cell === "X"
+                            ? game.player1Color
+                            : game.player2Color;
+
+                    ctx.fillRect(
+                        col * 3,
+                        row * 3,
+                        3,
+                        3
+                    );
+                }
+            );
+        }
+    );
+}
+    
 wrapper.prepend(thumbnail);
       
     saveListDiv.appendChild(wrapper);
@@ -555,401 +1150,317 @@ function getHistoricWinners(historyLimit) {
 function getHistoricUltimateWinners(
     historyLimit
 ) {
-
     const smallWinners =
-        getHistoricWinners(
-            historyLimit
-        );
-
+        getHistoricWinners(historyLimit);
     const ultimateWinners = {};
-
     for (
         let megaIndex = 0;
         megaIndex < 9;
         megaIndex++
     ) {
-
         const boardWinners = [];
-
         for (
             let smallIndex = 0;
             smallIndex < 9;
             smallIndex++
         ) {
-
             boardWinners.push(
                 smallWinners[
                     `${megaIndex}-${smallIndex}`
                 ] || null
             );
-
         }
-
         const winner =
-            checkWinner(
-                boardWinners
-            );
-
+            checkWinner(boardWinners);
         if (winner) {
-
             ultimateWinners[
                 megaIndex
             ] = winner;
-
         }
-
     }
-
     return ultimateWinners;
-
 }
 
 // ====== REPLAY BOARD BUILDER ======
 
 function buildBoardFromHistory(moveCount) {
-
     const megaBoard = [];
-
     for (let m = 0; m < 9; m++) {
-
         const ultimate = [];
-
         for (let s = 0; s < 9; s++) {
-
             ultimate.push({
                 cells: new Array(9).fill(null),
                 winner: null
             });
-
         }
-
         megaBoard.push({
             smallBoards: ultimate,
             winner: null
         });
-
     }
-
     currentGame.history
         .slice(0, moveCount)
         .forEach(move => {
-
             const smallBoard =
                 megaBoard[
                     move.megaIndex
                 ].smallBoards[
                     move.smallIndex
                 ];
-
             smallBoard.cells[
                 move.cellIndex
             ] = move.player;
-
             const smallWinner =
-                checkWinner(
-                    smallBoard.cells
-                );
-
+                checkWinner(smallBoard.cells);
             if (smallWinner) {
-
-                smallBoard.winner =
-                    smallWinner;
-
+                smallBoard.winner = smallWinner;
             }
-
         });
-
     megaBoard.forEach(
         ultimateBoard => {
-
             const winner =
-                checkUltimateWinner(
-                    ultimateBoard
-                );
-
-            ultimateBoard.winner =
-                winner;
-
+                checkUltimateWinner(ultimateBoard);
+            ultimateBoard.winner = winner;
         }
     );
-
     return megaBoard;
+}
 
+function buildUltimateBoardFromHistory(
+    moveCount
+) {
+    const boards = [];
+
+    for (
+        let i = 0;
+        i < 9;
+        i++
+    ) {
+        boards.push({
+            cells: new Array(9).fill(null),
+            winner: null
+        });
+    }
+
+    currentGame.history
+        .slice(0, moveCount)
+        .forEach(move => {
+
+            const board =
+                boards[
+                    move.boardIndex
+                ];
+
+            board.cells[
+                move.cellIndex
+            ] = move.player;
+
+            const winner =
+                checkWinner(
+                    board.cells
+                );
+
+            if (winner) {
+                board.winner = winner;
+            }
+        });
+
+    return boards;
+}
+
+// ====== MEGA MAP RENDERING ======
+
+function renderMegaNestedMap() {
+    megaBoardDiv.innerHTML = '';
+    const container =
+        document.createElement('div');
+    container.className =
+        'mega-board-grid';
+    const boardSet =
+        getCurrentBoardSet();
+    boardSet.forEach(
+        (
+            ultimateBoard,
+            index
+        ) => {
+            const board =
+                createUltimateBoardElement(
+                    ultimateBoard,
+                    currentGame.player1Color,
+                    currentGame.player2Color,
+                    index
+                );
+            board.classList.add(
+                'mega-ultimate-board'
+            );
+            board.onclick = () => {
+                if (viewingHistory) {
+                    return;
+                }
+                if (currentGame.freeMove) {
+                    const targetBoard =
+                        currentGame.megaBoard[index];
+                    if (targetBoard.winner) {
+                        return;
+                    }
+                    startFreeMoveSelection(
+                        index
+                    );
+                    renderMap();
+                    return;
+                }
+                if (
+                    index !==
+                    getCurrentPathLevel(0)
+                ) {
+                    return;
+                }
+
+                showZoomScreen();
+
+            };
+            container.appendChild(
+                board
+            );
+        }
+    );
+    megaBoardDiv.appendChild(
+        container
+    );
 }
 
 // ====== MAP RENDERING ======
 
 function renderMap() {
-  if (!currentGame) return;
-  rebuildUltimateWinners();
+    if (!currentGame) return;
+    megaBoardDiv.style.gridTemplateColumns =
+        "";
 
-const boardToRender =
+    megaBoardDiv.style.gridTemplateRows =
+        "";
 
-    viewingHistory
+    updateFreeMoveBanner();
 
-    ? buildBoardFromHistory(
-        historyIndex
-      )
+    updateGameTitle(
+        checkMegaWinner(
+            currentGame.megaBoard
+        )
+    );
+    
+    renderMegaNestedMap();
+    
+    updateHistoryButtons();
+    
+    updateContinueButton();
+    
+    return;
+}
 
-    : currentGame.megaBoard;
+// ====== ULTIMATE MAP RENDERING ======
 
-    if (
-        currentGame.freeMove &&
-        !viewingHistory &&
-        !checkMegaWinner(currentGame.megaBoard)
-    ) {
-        freeMoveBanner.classList.remove('hidden');
-    } else {
-       freeMoveBanner.classList.add('hidden');
-    }
-
-  const gameWinner =
-    checkMegaWinner(
-        currentGame.megaBoard
+function renderUltimateMap() {
+    updateFreeMoveBanner();
+    updateGameTitle(
+        checkUltimateGameWinner(
+            currentGame.ultimateBoard
+        )
     );
 
-  const megaWinner =
-    gameWinner;
-
-if (gameWinner === 'X') {
-
-    gameTitle.textContent =
-        `${currentGame.player1} Wins!`;
-
-}
-else if (gameWinner === 'O') {
-
-    gameTitle.textContent =
-        `${currentGame.player2} Wins!`;
-
-}
-else {
-
-    gameTitle.textContent =
-        `${currentGame.player1} vs ${currentGame.player2}`;
-
-}
-    
-megaBoardDiv.innerHTML = '';
-
-const activeMega =
-    viewingHistory
-    ? null
-    : (
-        selectedFreeMoveBoard
-        ? selectedFreeMoveBoard.mega
-        : currentGame.currentMegaIndex
-    );
-
-const activeSmall =
-    viewingHistory
-    ? null
-    : (
-        selectedFreeMoveBoard
-        ? selectedFreeMoveBoard.small
-        : currentGame.currentSmallIndex
-    );
-
-const activeStartRow =
-    activeMega === null
-        ? null
-        : Math.floor(activeMega / 3) * 9 +
-          Math.floor(activeSmall / 3) * 3;
-
-const activeStartCol = activeMega === null
-        ? null
-        : (activeMega % 3) * 9 +
-          (activeSmall % 3) * 3;
-    
-const activeColor = getPlayerColor(currentGame.currentPlayer);
-    
-for (let row = 0; row < 27; row++) {
-
-  for (let col = 0; col < 27; col++) {
-
-    const cell = document.createElement('div');
-    cell.className = 'mega-cell';
-
-    // thick line every small board
-    cell.style.borderTop = '1px solid #555';
-    cell.style.borderLeft = '1px solid #555';
-
-    if (row % 3 === 0) {
-      cell.style.borderTop = '2px solid white';
-    }
-
-    if (col % 3 === 0) {
-      cell.style.borderLeft = '2px solid white';
-    }
-
-    if (row % 9 === 0 && row !== 0) {
-     cell.style.borderTop = '4px solid white';
-    }  
-
-    if (col % 9 === 0 && col !== 0) {
-     cell.style.borderLeft = '4px solid white';
-    }
-
-const boardMega =
-    Math.floor(row / 9) * 3 +
-    Math.floor(col / 9);
-
-const boardSmall =
-    Math.floor((row % 9) / 3) * 3 +
-    Math.floor((col % 9) / 3);
-
-cell.onclick = () => {
-
-    if (
-        !currentGame.freeMove ||
+    megaBoardDiv.innerHTML = '';
+    const boardSet =
         viewingHistory
-    ) {
-        return;
-    }
-
-    const boardWinner =
-    currentGame
-        .megaBoard[boardMega]
-        .smallBoards[boardSmall]
-        .winner;
-    
-    const ultimateWinner =
-    currentGame.megaBoard[
-        boardMega
-    ].winner;
-
-    if (boardWinner || ultimateWinner) {
-        return;
-    }
-
-selectedFreeMoveBoard = {
-    mega: boardMega,
-    small: boardSmall
-};
-
-currentGame.currentMegaIndex =
-    boardMega;
-
-currentGame.currentSmallIndex =
-    boardSmall;
-
-renderMap();
-};
-
-const megaData =
-    boardToRender[boardMega];
-
-const boardData =
-    boardToRender[boardMega]
-        .smallBoards[boardSmall];
-
-if (megaData.winner === 'X') {
-    cell.style.background = currentGame.player1Color;
-}
-else if (megaData.winner === 'O') {
-    cell.style.background = currentGame.player2Color;
-}
-else if (boardData.winner === 'X') {
-    cell.style.background = currentGame.player1Color;
-}
-else if (boardData.winner === 'O') {
-    cell.style.background = currentGame.player2Color;
-}
-      
-currentGame.history
-  .slice(0, historyIndex)
-  .forEach(move => {
-      
-  const boardRow =
-      Math.floor(move.megaIndex / 3) * 9 +
-      Math.floor(move.smallIndex / 3) * 3 +
-      Math.floor(move.cellIndex / 3);
-
-  const boardCol =
-      (move.megaIndex % 3) * 9 +
-      (move.smallIndex % 3) * 3 +
-      (move.cellIndex % 3);
-
-    if (
-        boardRow === row &&
-        boardCol === col
-    )
-{
-    cell.style.background =
-    getPlayerColor(move.player);
-}
-});
-
-const inActiveBoard =
-    !megaWinner &&
-    activeMega !== null &&
-    row >= activeStartRow &&
-    row < activeStartRow + 3 &&
-    col >= activeStartCol &&
-    col < activeStartCol + 3;
-
-if (inActiveBoard) {
-
-    if (row === activeStartRow) {
-        cell.style.borderTop = `4px solid ${activeColor}`;
-    }
-
-    if (row === activeStartRow + 2) {
-        cell.style.borderBottom = `4px solid ${activeColor}`;
-    }
-
-    if (col === activeStartCol) {
-        cell.style.borderLeft = `4px solid ${activeColor}`;
-    }
-
-    if (col === activeStartCol + 2) {
-        cell.style.borderRight = `4px solid ${activeColor}`;
-    }
-}
-      
-    megaBoardDiv.appendChild(cell);
-  }
-}
-
-if (megaWinner) {
-
-    turnArrowBtn.classList.add(
-        "hidden"
-    );
-
-}
-else {
-
-    turnArrowBtn.classList.remove(
-        "hidden"
-    );
-
-}
-    
-    turnArrowBtn.style.background =
-        getPlayerColor(currentGame.currentPlayer);
-    turnArrowBtn.style.color = "white";
-    
-  historyBack.disabled = historyIndex <= 0;
-  historyForward.disabled = historyIndex >= currentGame.history.length;
-
-    if (
-    viewingHistory ||
-    (
-        currentGame.freeMove &&
-        selectedFreeMoveBoard === null
-    )
+            ? buildGameStateFromHistory(
+                historyIndex
+            )
+            : currentGame.ultimateBoard;
+    megaBoardDiv.style.gridTemplateColumns =
+        "repeat(3, 1fr)";
+    megaBoardDiv.style.gridTemplateRows =
+        "repeat(3, 1fr)";
+for (
+    let boardIndex = 0;
+    boardIndex < 9;
+    boardIndex++
 ) {
-
-    turnArrowBtn.style.opacity = "0.3";
-    turnArrowBtn.disabled = true;
-
-} else {
-
-    turnArrowBtn.style.opacity = "1";
-    turnArrowBtn.disabled = false;
-
+    const cell =
+        document.createElement('div');
+    cell.className =
+        'mega-cell';
+    cell.className =
+    "mega-cell ultimate-map-board";
+    const board =
+        boardSet[
+            boardIndex
+        ];
+    if (!board.winner) {
+        board.cells.forEach(
+            value => {
+                const mini =
+                    createUltimateCellElement(
+                        value
+                    );
+                cell.appendChild(
+                    mini
+                );
+            }
+        );
+    }
+    applyHighlight(
+        cell,
+        (
+            !viewingHistory &&
+            isHighlightedBoard(
+                boardIndex
+            )
+        )
+        ||
+        (
+            currentGame.freeMove &&
+            freeMoveSelection &&
+            freeMoveSelection.level1 ===
+                boardIndex
+        )
+    );
+    applyWinnerFill(
+        cell,
+        board.winner,
+        currentGame.player1Color,
+        currentGame.player2Color
+    );
+    cell.onclick = () => {
+        if (
+            currentGame.freeMove
+        ) {
+            if (
+                !isPlayableDestination(
+                    board
+                )
+            ) {
+                return;
+            }
+            startFreeMoveSelection(
+                boardIndex
+            );
+            setCurrentBoard(
+                boardIndex
+            );
+            renderUltimateMap();
+            return;
+        }
+        if (
+            !isHighlightedBoard(
+                boardIndex
+            )
+        ) {
+            return;
+        }
+        showZoomScreen();
+    };
+    megaBoardDiv.appendChild(
+        cell
+    );
 }
+    updateContinueButton();
 }
 
 // ====== ZOOM BOARD ======
@@ -957,8 +1468,10 @@ else {
 function renderZoomBoard() {
   if (!currentGame) return;
 
-  const m = currentGame.currentMegaIndex;
-  const s = currentGame.currentSmallIndex;
+    const [
+        m,
+        s
+    ] = currentGame.currentPath;
 
   zoomTitle.textContent = `Ultimate ${m + 1}, Small ${s + 1}`;
 
@@ -983,6 +1496,45 @@ function renderZoomBoard() {
 
     zoomBoardDiv.appendChild(cellDiv);
   });
+}
+
+function renderUltimateZoom() {
+    zoomBoardDiv.innerHTML = '';
+    const board =
+        currentGame.ultimateBoard[
+            currentGame.currentPath[0]
+        ];
+    board.cells.forEach(
+        (cell, index) => {
+            const div =
+                document.createElement('div');
+            div.className =
+                'zoom-cell';
+            if (cell === 'X') {
+                div.style.background =
+                    currentGame.player1Color;
+            }
+            else if (cell === 'O') {
+                div.style.background =
+                    currentGame.player2Color;
+            }
+            div.onclick = () => {
+                handleCurrentMove(
+                    currentGame.currentPath[0],
+                    index
+                );
+            };
+
+            zoomBoardDiv.appendChild(
+                div
+            );
+        }
+    );
+}
+
+function renderCurrentZoom() {
+    getGameHandler()
+        .renderZoom();
 }
 
 // ====== SMALL GAME WIN ======
@@ -1016,42 +1568,43 @@ function renderZoomBoard() {
     return null;
 }
 
-function checkUltimateWinner(ultimateBoard) {
+function getWinnerFromBoards(
+    boards
+) {
+    return checkWinner(
+        boards.map(
+            board => board.winner
+        )
+    );
+}
 
+function checkUltimateWinner(ultimateBoard) {
     const winners =
         ultimateBoard.smallBoards.map(
             board => board.winner
         );
-
     return checkWinner(winners);
 }
 
-function checkMegaWinner(megaBoard) {
-
-    const winners =
-        megaBoard.map(
-            ultimate => ultimate.winner
-        );
-
-    return checkWinner(winners);
-
+function checkMegaWinner(
+    megaBoard
+) {
+    return getWinnerFromBoards(
+        megaBoard
+    );
 }
 
 function rebuildUltimateWinners() {
-
     currentGame.megaBoard.forEach(
         ultimateBoard => {
-
             const winner =
                 checkUltimateWinner(
                     ultimateBoard
                 );
-
             ultimateBoard.winner =
                 winner;
         }
     );
-
 }
 
 function rebuildUltimateWinnersForGame(game) {
@@ -1073,20 +1626,30 @@ function rebuildUltimateWinnersForGame(game) {
 
 // ====== GAME LOGIC ======
 
+function handleCurrentMove(
+    ...args
+) {
+    getGameHandler()
+        .handleMove(
+            ...args
+        );
+}
+
 function handleCellClick(mIndex, sIndex, cIndex) {
   const smallBoard = currentGame.megaBoard[mIndex].smallBoards[sIndex];
 
   if (smallBoard.cells[cIndex] !== null) return;
 
-  const player = currentGame.currentPlayer;
-  smallBoard.cells[cIndex] = player;
-
-currentGame.history.push({
-    megaIndex: mIndex,
-    smallIndex: sIndex,
-    cellIndex: cIndex,
-    player
-  });
+    const player =
+        currentGame.currentPlayer;
+    smallBoard.cells[cIndex] =
+        player;
+    currentGame.history.push({
+        megaIndex: mIndex,
+        smallIndex: sIndex,
+        cellIndex: cIndex,
+        player
+    });
 
   historyIndex = currentGame.history.length;
 
@@ -1117,11 +1680,9 @@ if (winner) {
 
     if (megaWinner) {
         currentGame.freeMove = false;
-        selectedFreeMoveBoard = null;
-        alert(
-            megaWinner === 'X'
-            ? `${currentGame.player1} wins!`
-            : `${currentGame.player2} wins!`
+        clearSelections();
+        showWinner(
+            megaWinner
         );
         updateGame(currentGame);
         showMapScreen();
@@ -1145,15 +1706,18 @@ if (targetBoard.winner || targetUltimate.winner) {
 } else {
 
     currentGame.freeMove = false;
-    selectedFreeMoveBoard = null;
-    currentGame.currentMegaIndex = sIndex;
-    currentGame.currentSmallIndex = cIndex;
+    clearSelections();
+
+    setCurrentBoard(
+        sIndex,
+        cIndex
+    );
 }
 
-  currentGame.currentPlayer = player === 'X' ? 'O' : 'X';
+    switchPlayer();
 
     if (!currentGame.freeMove) {
-    selectedFreeMoveBoard = null;
+    clearSelections();
 }
 
   updateGame(currentGame);
@@ -1161,35 +1725,183 @@ if (targetBoard.winner || targetUltimate.winner) {
   showMapScreen();
 }
 
+function handleUltimateMove(
+    boardIndex,
+    cellIndex
+) {
+    const board =
+        currentGame.ultimateBoard[
+            boardIndex
+        ];
+    if (
+        board.cells[cellIndex]
+        !== null
+    ) {
+        return;
+    }
+    const player =
+        currentGame.currentPlayer;
+    board.cells[cellIndex] =
+        player;
+    currentGame.history.push({
+        boardIndex,
+        cellIndex,
+        player
+    });
+        historyIndex =
+            currentGame.history.length;
+    const boardWinner =
+        checkWinner(
+            board.cells
+        );
+    if (boardWinner) {
+        board.winner =
+            boardWinner;
+    }
+    const gameWinner =
+        checkUltimateGameWinner(
+            currentGame
+                .ultimateBoard
+        );
+    if (gameWinner) {
+        currentGame.freeMove = false;
+        clearSelections();
+        showWinner(
+            gameWinner
+        );
+        updateGame(
+            currentGame
+        );
+        showMapScreen();
+        return;
+    }
+    switchPlayer();
+    const targetBoard =
+        currentGame.ultimateBoard[
+            cellIndex
+        ];
+
+    if (
+        !isBoardPlayable(
+            targetBoard
+        )
+    ) {
+        currentGame.freeMove = true;
+    }
+    else {
+        currentGame.freeMove = false;
+        clearSelections();
+        
+        setCurrentBoard(
+            cellIndex
+        );
+    }
+
+    currentGame.lastPlayed =
+        new Date().toISOString();
+    if (!currentGame.freeMove) {
+        clearSelections();
+    }
+    updateGame(
+        currentGame
+    );
+    showMapScreen();
+
+}
+    
+// ====== ULTIMATE GAME DATA ======
+
+function createUltimateGame(
+    player1,
+    player2,
+    player1Color,
+    player2Color
+) {
+    const ultimateBoard = [];
+    for (
+        let i = 0;
+        i < 9;
+        i++
+    ) {
+        ultimateBoard.push({
+            cells:
+                new Array(9).fill(null),
+            winner: null
+        });
+    }
+    return {
+        id: Date.now(),
+        gameType: "ultimate",
+        player1,
+        player2,
+        player1Color,
+        player2Color,
+        ultimateBoard,
+        currentPath: [4],
+        currentPlayer: 'X',
+        freeMove: false,
+        history: [],
+        lastPlayed:
+            new Date()
+                .toISOString()
+    };
+}
+
+function checkUltimateSmallWinner(
+    board
+) {
+    return checkWinner(
+        board.cells
+    );
+}
+
+function checkUltimateGameWinner(
+    ultimateBoard
+) {
+    return getWinnerFromBoards(
+        ultimateBoard
+    );
+}
+
 // ====== HISTORY ======
 
 historyBack.onclick = () => {
-  if (historyIndex <= 0) return;
-  historyIndex--;
-  viewingHistory = true;
-  freeMoveBanner.classList.add('hidden');
-  const move = currentGame.history[historyIndex];
-  historyMegaIndex = move.megaIndex;
-  historySmallIndex = move.smallIndex;
-  renderMap();
+    if (historyIndex <= 0) return;
+    historyIndex--;
+    viewingHistory = true;
+    freeMoveBanner.classList.add('hidden');
+    const move = currentGame.history[historyIndex];
+    if (
+        currentGameType === "mega"
+    ) {
+        historyMegaIndex =
+            move.megaIndex;
+        historySmallIndex =
+            move.smallIndex;
+    }
+    updateHistoryButtons();
+    renderCurrentGame();
 };
 
 historyForward.onclick = () => {
   if (historyIndex >= currentGame.history.length) return;
   historyIndex++;
-  if (historyIndex < currentGame.history.length) {
-    const move = currentGame.history[historyIndex];
-    historyMegaIndex = move.megaIndex;
-    historySmallIndex = move.smallIndex;
-  }
+    if (historyIndex < currentGame.history.length) {
+        const move = currentGame.history[historyIndex];
+        if (
+            currentGameType === "mega"
+        ) {
+            historyMegaIndex =
+                move.megaIndex;
+            historySmallIndex =
+                move.smallIndex;
+        }
+    }
   if (historyIndex === currentGame.history.length) {
-
-    viewingHistory = false;
-
-    historyMegaIndex = null;
-    historySmallIndex = null;
+    leaveHistoryMode();
 }
-  renderMap();
+    updateHistoryButtons();
+    renderCurrentGame();
 };
 
 // ====== EXPORT ======
@@ -1211,12 +1923,34 @@ function exportGame(game) {
     const url =URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download =        `MegaTTT_${game.player1}_vs_${game.player2}.json`;
+    link.download = `${game.gameType}_TTT_${game.player1}_vs_${game.player2}.json`;
     link.click();
     URL.revokeObjectURL(url);
 }
 
 // ====== BUTTONS ======
+
+btnClassicGame.onclick = () => {
+    alert("Classic Tic Tac Toe Coming Soon");
+};
+
+btnUltimateGame.onclick = () => {
+    currentGameType = "ultimate";
+    showGameHomeScreen();
+};
+
+btnMegaGame.onclick = () => {
+    currentGameType = "mega";
+    showGameHomeScreen();
+};
+
+btnSuperGame.onclick = () => {
+    alert("Super Tic Tac Toe Coming Soon");
+};
+
+btnBackToSelection.onclick = () => {
+    showStartScreen();
+};
 
 btnNewGame.onclick = () => {
   showNewGamePopup();
@@ -1226,23 +1960,33 @@ btnCancelNew.onclick = () => {
   hideNewGamePopup();
 };
 
+const GAME_CREATORS = {
+    mega: createEmptyGame,
+    ultimate: createUltimateGame
+};
+
 btnCreateGame.onclick = () => {
     const p1 = player1Input.value.trim() || 'Player 1';
     const p2 = player2Input.value.trim() || 'Player 2';
     const player1Color = player1ColorSelect.value;
     const player2Color = player2ColorSelect.value;
-    const game = createEmptyGame(p1, p2, player1Color, player2Color);
+    const game =
+        GAME_CREATORS[
+            currentGameType
+        ](
+            p1,
+            p2,
+            player1Color,
+            player2Color
+        );
     const games = loadSaves();
     games.push(game);
     saveAllGames(games);
 
     currentGame = game;
-        selectedFreeMoveBoard = null;
+        clearSelections();
 
-    viewingHistory = false;
-
-    historyMegaIndex = null;
-    historySmallIndex = null;
+    resetHistoryView();
     historyIndex = 0;
 
     hideNewGamePopup();
@@ -1254,36 +1998,35 @@ btnResumeGame.onclick = () => {
 };
 
 btnBackToStart.onclick = () => {
-  showStartScreen();
+  showGameHomeScreen();
 };
 
 btnExitToStart.onclick = () => {
   currentGame = null;
   historyIndex = null;
-  viewingHistory = false;
-  historyMegaIndex = null;
-  historySmallIndex = null;
-  showStartScreen();
+  resetHistoryView();
+  showGameHomeScreen();
 };
 
 turnArrowBtn.onclick = () => {
-
     if (viewingHistory) {
-
-        historyIndex = currentGame.history.length;
-
-        viewingHistory = false;
-
-        renderMap();
-
+        leaveHistoryMode();
+        renderCurrentGame();
         return;
     }
-
-    if (selectedFreeMoveBoard) {
-
+    if (
+        currentGame.freeMove &&
+        freeMoveSelection
+    ) {
         currentGame.freeMove = false;
     }
-
+    if (
+        currentGame.freeMove &&
+        !hasValidSelection()
+    ) {
+        return;
+    }
+    
     showZoomScreen();
 };
 
@@ -1304,7 +2047,7 @@ btnHowToPlay.onclick = () => {
 };
 
 btnTutorialBack.onclick = () => {
-    showStartScreen();
+    showGameHomeScreen();
 };
 
 // ====== IMPORT LOGIC ======
@@ -1322,6 +2065,9 @@ importFile.onchange = e => {
     reader.onload = () => {
         try {
             const importedGame = JSON.parse(reader.result);
+            if (!importedGame.gameType) {
+                importedGame.gameType = "mega";
+            }
             const games =loadSaves();
             importedGame.id =
                 Date.now();
