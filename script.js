@@ -6,30 +6,31 @@ function createEmptyGame(
     player1Color, 
     player2Color
 ) {
-  const megaBoard = [];
-  for (let m = 0; m < 9; m++) {
-    const ultimate = [];
-    for (let u = 0; u < 9; u++) {
-      const small = new Array(9).fill(null);
-      ultimate.push({ cells: small, winner: null});
+    const megaBoard = [];
+    for (let m = 0; m < 9; m++) {
+        const ultimate = [];
+        for (let u = 0; u < 9; u++) {
+        const small = new Array(9).fill(null);
+        ultimate.push({ cells: small, winner: null});
+        }
+        megaBoard.push({ smallBoards: ultimate, winner: null });
     }
-    megaBoard.push({ smallBoards: ultimate, winner: null });
-  }
 
-  return {
-    id: Date.now(),
-    gameType: currentGameType,
-    player1,
-    player2,
-    player1Color,
-    player2Color,
-    megaBoard,
-    currentPath: [4,4],
-    currentPlayer: 'X',
-    freeMove: false,
-    history: [],
-    lastPlayed: new Date().toISOString()
-  };
+    return {
+        id: Date.now(),
+        gameType: currentGameType,
+        player1,
+        player2,
+        player1Color,
+        player2Color,
+        megaBoard,
+        currentPath: [4,4],
+        currentPlayer: 'X',
+        freeMove: false,
+        gameOver: false,
+        history: [],
+        lastPlayed: new Date().toISOString()
+    };
 }
 
 // ====== LOCAL STORAGE ======
@@ -113,7 +114,9 @@ const saveFilter = document.getElementById('save-filter');
 const tutorialScreen = document.getElementById('tutorial-screen');
 const btnHowToPlay = document.getElementById('btn-how-to-play');
 const btnTutorialBack = document.getElementById('btn-tutorial-back');
+const tutorialContent = document.getElementById('tutorial-content');
 const gameHomeTitle = document.getElementById("game-home-title");
+const tutorialTitle = document.getElementById("tutorial-title");
 
 // ====== GLOBAL STATE ======
 
@@ -141,6 +144,46 @@ const GAME_CONFIGS = {
     }
 };
 
+const TUTORIAL_CONTENT = {
+
+    ultimate: `
+
+        <h2>Objective</h2>
+        <p>
+            Ultimate Tic Tac Toe is made of nine Tic Tac Toe boards. Win three boards in a row to win.
+        </p>
+
+        <h2>Starting The Game</h2>
+        <p>
+            The game always starts in the center board.
+        </p>
+
+        <h2>Taking A Turn</h2>
+        <p>
+            Press Continue to enter the active board. Select an empty square to place your mark.
+        </p>
+
+        <h2>Board Routing</h2>
+        <p>
+            Where you play determines where your opponent must play next.
+        </p>
+
+        <h2>Free Moves</h2>
+        <p>
+            If the destination board has already been won, the next player receives a FREE MOVE and may play anywhere.
+        </p>
+
+        <h2>Winning</h2>
+        <p>
+            Capture three boards in a row horizontally, vertically, or diagonally.
+        </p>
+
+    `,
+    mega: document.getElementById(
+        "tutorial-content"
+    ).innerHTML
+};
+
 function getGameHandler() {
     return GAME_HANDLERS[
         currentGameType
@@ -161,6 +204,12 @@ const GAME_HANDLERS = {
         handleMove: handleUltimateMove,
         buildHistory:
             buildUltimateBoardFromHistory
+    },
+    super: {
+        renderMap: null,
+        renderZoom: null,
+        handleMove: null,
+        buildHistory: null
     }
 };
 
@@ -286,12 +335,22 @@ function showZoomScreen() {
 }
 
 function showTutorialScreen() {
+    tutorialTitle.textContent =
+        `${GAME_CONFIGS[currentGameType].title}
+        Tutorial`;
+    tutorialContent.innerHTML =
+        TUTORIAL_CONTENT[
+            currentGameType
+        ] ||
+        TUTORIAL_CONTENT.mega;
     startScreen.classList.add('hidden');
     megaHomeScreen.classList.add('hidden');
     resumeScreen.classList.add('hidden');
     mapScreen.classList.add('hidden');
     zoomScreen.classList.add('hidden');
-    tutorialScreen.classList.remove('hidden');
+    tutorialScreen.classList.remove(
+        'hidden'
+    );
 }
 
 function updateAvailableColors() {
@@ -640,11 +699,14 @@ function hasValidSelection() {
 }
 
 function getHighlightedLevels() {
-    if (
-        currentGame.freeMove &&
-        freeMoveSelection
-    ) {
-        return freeMoveSelection;
+    if (currentGame.gameOver) {
+        return {};
+    }
+    if (currentGame.freeMove) {
+        if (freeMoveSelection) {
+            return freeMoveSelection;
+        }
+        return {};
     }
     return {
         level1:
@@ -814,8 +876,11 @@ default:
     const wrapper = document.createElement('div');
     const thumbnail =   document.createElement('canvas');
 
-thumbnail.width = 54;
-thumbnail.height = 54;
+thumbnail.width = 108;
+thumbnail.height = 108;
+
+thumbnail.style.width = "54px";
+thumbnail.style.height = "54px";
 
 const ctx = thumbnail.getContext('2d');
 
@@ -1680,6 +1745,7 @@ if (winner) {
 
     if (megaWinner) {
         currentGame.freeMove = false;
+        currentGame.gameOver = true;
         clearSelections();
         showWinner(
             megaWinner
@@ -1764,6 +1830,7 @@ function handleUltimateMove(
                 .ultimateBoard
         );
     if (gameWinner) {
+        currentGame.gameOver = true;
         currentGame.freeMove = false;
         clearSelections();
         showWinner(
@@ -1840,6 +1907,7 @@ function createUltimateGame(
         currentPath: [4],
         currentPlayer: 'X',
         freeMove: false,
+        gameOver: false,
         history: [],
         lastPlayed:
             new Date()
@@ -1861,6 +1929,29 @@ function checkUltimateGameWinner(
     return getWinnerFromBoards(
         ultimateBoard
     );
+}
+
+// ====== SUPER GAME DATA ======
+
+function createSuperGame(
+    player1,
+    player2,
+    player1Color,
+    player2Color
+) {
+    return {
+        id: Date.now(),
+        gameType: "super",
+        player1,
+        player2,
+        player1Color,
+        player2Color,
+        currentPlayer: "X",
+        history: [],
+        freeMove: false,
+        lastPlayed:
+            new Date().toISOString()
+    };
 }
 
 // ====== HISTORY ======
@@ -1962,7 +2053,8 @@ btnCancelNew.onclick = () => {
 
 const GAME_CREATORS = {
     mega: createEmptyGame,
-    ultimate: createUltimateGame
+    ultimate: createUltimateGame,
+    super: createSuperGame
 };
 
 btnCreateGame.onclick = () => {
