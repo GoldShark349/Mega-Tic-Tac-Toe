@@ -1581,17 +1581,17 @@ function renderSaveList() {
         games
     );
 
-    if (saveFilter.value === "finished") {
-        games = games.filter(game => {
-            const board =
-                game.gameType === "ultimate"
-                    ? game.ultimateBoard
-                    : game.gameType === "mega"
-                    ? game.megaBoard
-                    : game.superBoard;
-            return getWinner(board);
-        });
-    }
+//    if (saveFilter.value === "finished") {
+//        games = games.filter(game => {
+//            const board =
+//                game.gameType === "ultimate"
+//                    ? game.ultimateBoard
+//                    : game.gameType === "mega"
+//                    ? game.megaBoard
+//                    : game.superBoard;
+//            return getWinner(board);
+//        });
+//    }
 
     if (saveFilter.value === "unfinished") {
         games = games.filter(game => {
