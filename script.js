@@ -127,6 +127,23 @@ function normalizeSave(game) {
     if (!game.superViewPath) {
         game.superViewPath = [];
     }
+    if (
+        game.gameType === "mega" &&
+        game.megaBoard
+    ) {
+        game.megaBoard.forEach(
+            getBoardWinner
+        );
+    }
+
+    if (
+        game.gameType === "ultimate" &&
+        game.ultimateBoard
+    ) {
+        game.ultimateBoard.forEach(
+            getBoardWinner
+        );
+    }
     return game;
 }
 
@@ -186,6 +203,17 @@ const btnTutorialBack = document.getElementById('btn-tutorial-back');
 const tutorialContent = document.getElementById('tutorial-content');
 const gameHomeTitle = document.getElementById("game-home-title");
 const tutorialTitle = document.getElementById("tutorial-title");
+const SUPER_COLORS = [
+    "#ff0000",
+    "#ff8800",
+    "#ffff00",
+    "#00ff00",
+    "#00ffff",
+    "#0080ff",
+    "#8000ff",
+    "#ff00ff",
+    "#ffffff"
+];
 
 // ====== GLOBAL STATE ======
 
@@ -195,6 +223,9 @@ let viewingHistory = false;
 
 let freeMoveSelection = null;
 let currentGameType = "mega";
+
+let superSelectedMega = null;
+let superSelectedUltimate = null;
 
 const GAME_CONFIGS = {
     classic: {
@@ -384,7 +415,16 @@ function showGameHomeScreen() {
 }
 
 function showNewGamePopup() {
-    newGamePopup.classList.remove('hidden');
+    player1Input.value = "";
+    player2Input.value = "";
+    player1ColorSelect.value =
+        "#ff0000";
+    player2ColorSelect.value =
+        "#0080ff";
+    updateAvailableColors();
+    newGamePopup.classList.remove(
+        "hidden"
+    );
 }
 
 function hideNewGamePopup() {
@@ -785,6 +825,11 @@ function buildBoardFromHistoryGeneric(
 }
 
 function shouldDisableContinue() {
+    if (
+        currentGame.gameType === "super"
+    ) {
+        return true;
+    }
     return (
         currentGame.gameOver ||
         viewingHistory ||
@@ -907,8 +952,7 @@ function getWinner(
     ) {
         return checkWinner(
             target.map(
-                item =>
-                    item.winner
+                item => getBoardWinner(item)
             )
         );
     }
@@ -1521,11 +1565,21 @@ function formatTimeAgo(dateString) {
 function renderSaveList() {
     let games = loadSaves();
 
+    console.log(
+        "Loaded games:",
+        games
+    );
+
     games = games.filter(game => {
         const type =
             game.gameType || "mega";
         return type === currentGameType;
     });
+
+    console.log(
+        "Filtered games:",
+        games
+    );
 
     if (saveFilter.value === "finished") {
         games = games.filter(game => {
@@ -1946,15 +2000,55 @@ function renderSuperMap() {
                     currentGame.player1Color,
                     currentGame.player2Color
                 );
+            if (
+                currentGame.superViewPath.length === 0
+            ) {
+                element.style.outline =
+                    `4px solid ${
+                        SUPER_COLORS[index]
+                    }`;
+            }
+            if (
+                currentGame.superViewPath.length === 1
+            ) {
+                container.style.border =
+                    `6px solid ${
+                        SUPER_COLORS[
+                            superSelectedMega
+                        ]
+                    }`;
+                element.style.outline =
+                    `4px solid ${
+                        SUPER_COLORS[index]
+                    }`;
+            }
+            if (
+                currentGame.superViewPath.length === 2
+            ) {
+                container.style.border =
+                    `6px solid ${
+                        SUPER_COLORS[
+                            superSelectedUltimate
+                        ]
+                    }`;
+            }
             element.onclick = () => {
                 if (
                     isLeafBoard(child)
                 ) {
                     return;
                 }
-                currentGame
-                    .superViewPath
-                    .push(index);
+                if (
+                    currentGame.superViewPath.length === 0
+                ) {
+                    superSelectedMega = index;
+                }
+                else if (
+                    currentGame.superViewPath.length === 1
+                ) {
+                    superSelectedUltimate = index;
+                }
+                currentGame.superViewPath.push(index);
                 renderSuperMap();
             };
             container.appendChild(
@@ -1962,6 +2056,16 @@ function renderSuperMap() {
             );
         }
     );
+    gameTitle.textContent =
+        currentGame.superViewPath.length === 0
+            ? "Super Board"
+            : currentGame.superViewPath.length === 1
+            ? `Mega Board ${
+                superSelectedMega + 1
+              }`
+            : `Ultimate Board ${
+                superSelectedUltimate + 1
+              }`;
     megaBoardDiv.appendChild(
         container
     );
