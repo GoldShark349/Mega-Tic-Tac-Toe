@@ -127,21 +127,31 @@ function normalizeSave(game) {
     if (!game.superViewPath) {
         game.superViewPath = [];
     }
-    if (
-        game.gameType === "mega" &&
-        game.megaBoard
-    ) {
+    function convertLegacyBoard(board) {
+        if (!board) {
+            return;
+        }
+        if (board.smallBoards && !board.children) {
+            board.children = board.smallBoards;
+            delete board.smallBoards;
+        }
+        if (board.children) {
+            board.children.forEach(convertLegacyBoard);
+        }
+    }
+    if (game.megaBoard) {
         game.megaBoard.forEach(
-            getBoardWinner
+            convertLegacyBoard
         );
     }
-
-    if (
-        game.gameType === "ultimate" &&
-        game.ultimateBoard
-    ) {
+    if (game.ultimateBoard) {
         game.ultimateBoard.forEach(
-            getBoardWinner
+            convertLegacyBoard
+        );
+    }
+    if (game.superBoard) {
+        convertLegacyBoard(
+            game.superBoard
         );
     }
     return game;
@@ -1565,33 +1575,23 @@ function formatTimeAgo(dateString) {
 function renderSaveList() {
     let games = loadSaves();
 
-    console.log(
-        "Loaded games:",
-        games
-    );
-
-    games = games.filter(game => {
+        games = games.filter(game => {
         const type =
             game.gameType || "mega";
         return type === currentGameType;
     });
 
-    console.log(
-        "Filtered games:",
-        games
-    );
-
-//    if (saveFilter.value === "finished") {
-//        games = games.filter(game => {
-//            const board =
-//                game.gameType === "ultimate"
-//                    ? game.ultimateBoard
-//                    : game.gameType === "mega"
-//                    ? game.megaBoard
-//                    : game.superBoard;
-//            return getWinner(board);
-//        });
-//    }
+        if (saveFilter.value === "finished") {
+        games = games.filter(game => {
+            const board =
+                game.gameType === "ultimate"
+                    ? game.ultimateBoard
+                    : game.gameType === "mega"
+                    ? game.megaBoard
+                    : game.superBoard;
+            return getWinner(board);
+        });
+    }
 
     if (saveFilter.value === "unfinished") {
         games = games.filter(game => {
@@ -2305,6 +2305,11 @@ function getWinnerFromChildren(
 function rebuildWinners(
     board
 ) {
+    if (!board) {
+        
+        return null;
+    }
+
     if (isLeafBoard(board)) {
         board.winner =
             checkWinner(
@@ -2312,20 +2317,30 @@ function rebuildWinners(
             );
         return board.winner;
     }
+
+    if (!board.children) {
+        
+        return null;
+    }
+
     board.children.forEach(
         rebuildWinners
     );
+
     board.winner =
         getWinnerFromChildren(
             board.children
         );
+
     return board.winner;
 }
 
 function getBoardWinner(
     board
 ) {
+
     rebuildWinners(board);
+
     return board.winner;
 }
 
@@ -2346,8 +2361,11 @@ function rebuildUltimateWinners() {
 function rebuildUltimateWinnersForGame(
     game
 ) {
+
     game.megaBoard.forEach(
-        getBoardWinner
+        (board, index) => {
+            getBoardWinner(board);
+        }
     );
 }
 
@@ -2511,7 +2529,7 @@ btnMegaGame.onclick = () => {
 };
 
 btnSuperGame.onclick = () => {
-    alert("Super Tic Tac Toe Coming Soon");
+    alert("Classic Tic Tac Toe Coming Soon");
 };
 
 btnBackToSelection.onclick = () => {
