@@ -349,6 +349,17 @@ h2 {
     display: grid;
 }
 
+.super-mega-board {
+    display: grid;
+    grid-template-columns:
+        repeat(3, 1fr);
+    grid-template-rows:
+        repeat(3, 1fr);
+    border:
+        3px solid
+        var(--mega-board-line-color);
+}
+
 .mini-cell,
 .small-board-thumb,
 .ultimate-board,
